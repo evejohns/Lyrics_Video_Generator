@@ -13,12 +13,16 @@ import exportRoutes from './routes/export.js';
 import templateRoutes from './routes/templates.js';
 import youtubeRoutes from './routes/youtube.js';
 import audioRoutes from './routes/audio.js';
+import mediaRoutes from './routes/media.js';
 
 // Import middleware
 import { errorHandler } from './middleware/errorHandler.js';
 import { logger } from './middleware/logger.js';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+
+// Import and start worker
+import { exportWorker } from './workers/exportWorker.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -38,7 +42,20 @@ app.use(helmet());
 // CORS configuration
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    origin: (origin, callback) => {
+      // Allow any localhost in development
+      if (NODE_ENV === 'development') {
+        if (!origin || origin.startsWith('http://localhost:')) {
+          callback(null, true);
+        } else {
+          callback(null, false);
+        }
+      } else {
+        // Production: Only allow specified frontend URL
+        const allowedOrigin = process.env.FRONTEND_URL || 'http://localhost:5173';
+        callback(null, origin === allowedOrigin);
+      }
+    },
     credentials: true,
   })
 );
@@ -77,6 +94,7 @@ app.use('/api/export', exportRoutes);
 app.use('/api/templates', templateRoutes);
 app.use('/api/youtube', youtubeRoutes);
 app.use('/api/audio', audioRoutes);
+app.use('/api/media', mediaRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {
@@ -105,8 +123,14 @@ server.listen(PORT, () => {
 });
 
 // Graceful shutdown
-process.on('SIGTERM', () => {
+process.on('SIGTERM', async () => {
   console.log('SIGTERM received, shutting down gracefully...');
+
+  // Close worker
+  await exportWorker.close();
+  console.log('Worker closed');
+
+  // Close server
   server.close(() => {
     console.log('Server closed');
     process.exit(0);

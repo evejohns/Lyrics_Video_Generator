@@ -3,7 +3,7 @@ import { google } from 'googleapis';
 import { pool } from '../config/database.js';
 import { authenticate, AuthRequest } from '../middleware/auth.js';
 import { asyncHandler, AppError } from '../middleware/errorHandler.js';
-import { YouTubeUploadRequestSchema } from '@shared/export.js';
+import { YouTubeUploadRequestSchema } from 'shared/export.js';
 
 const router = Router();
 

@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { pool } from '../config/database.js';
 import { authenticate, AuthRequest } from '../middleware/auth.js';
 import { asyncHandler, AppError } from '../middleware/errorHandler.js';
-import { CreateProjectSchema, UpdateProjectSchema } from '@shared/project.js';
+import { CreateProjectSchema, UpdateProjectSchema } from 'shared/project.js';
 
 const router = Router();
 

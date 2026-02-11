@@ -1,9 +1,9 @@
 import { Router } from 'express';
 import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
+import jwt, { SignOptions } from 'jsonwebtoken';
 import { pool } from '../config/database.js';
 import { asyncHandler, AppError } from '../middleware/errorHandler.js';
-import { CreateUserSchema, LoginSchema } from '@shared/user.js';
+import { CreateUserSchema, LoginSchema } from 'shared/user.js';
 
 const router = Router();
 
@@ -34,8 +34,8 @@ router.post(
     // Generate JWT
     const token = jwt.sign(
       { id: user.id, email: user.email, plan: user.plan },
-      process.env.JWT_SECRET!,
-      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+      process.env.JWT_SECRET || 'secret',
+      { expiresIn: '7d' }
     );
 
     res.status(201).json({
@@ -76,8 +76,8 @@ router.post(
     // Generate JWT
     const token = jwt.sign(
       { id: user.id, email: user.email, plan: user.plan },
-      process.env.JWT_SECRET!,
-      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+      process.env.JWT_SECRET || 'secret',
+      { expiresIn: '7d' }
     );
 
     // Remove password hash from response

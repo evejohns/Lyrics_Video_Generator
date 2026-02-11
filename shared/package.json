@@ -5,6 +5,36 @@
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./user.js": {
+      "import": "./dist/user.js",
+      "types": "./dist/user.d.ts"
+    },
+    "./project.js": {
+      "import": "./dist/project.js",
+      "types": "./dist/project.d.ts"
+    },
+    "./lyrics.js": {
+      "import": "./dist/lyrics.js",
+      "types": "./dist/lyrics.d.ts"
+    },
+    "./config.js": {
+      "import": "./dist/config.js",
+      "types": "./dist/config.d.ts"
+    },
+    "./export.js": {
+      "import": "./dist/export.js",
+      "types": "./dist/export.d.ts"
+    },
+    "./template.js": {
+      "import": "./dist/template.js",
+      "types": "./dist/template.d.ts"
+    }
+  },
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",

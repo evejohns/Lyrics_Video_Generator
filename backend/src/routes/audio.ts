@@ -70,8 +70,9 @@ router.post(
 
     await s3Client.send(command);
 
-    // Construct public URL
-    const audioUrl = `${bucketUrl}/${filename}`;
+    // Construct proxied URL through our API instead of direct MinIO URL
+    const baseUrl = process.env.FRONTEND_URL?.replace('5174', '3000') || 'http://localhost:3000';
+    const audioUrl = `${baseUrl}/api/media/audio/${userId}/${path.basename(filename)}`;
 
     // Extract basic metadata (enhanced metadata will be done client-side with music-metadata)
     const metadata = {

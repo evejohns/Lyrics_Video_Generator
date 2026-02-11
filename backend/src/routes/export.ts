@@ -1,10 +1,12 @@
 import { Router } from 'express';
 import { Queue } from 'bullmq';
+import { GetObjectCommand } from '@aws-sdk/client-s3';
 import { pool } from '../config/database.js';
 import redis from '../config/redis.js';
+import { s3Client, bucketName } from '../config/storage.js';
 import { authenticate, AuthRequest } from '../middleware/auth.js';
 import { asyncHandler, AppError } from '../middleware/errorHandler.js';
-import { CreateExportSchema } from '@shared/export.js';
+import { CreateExportSchema } from 'shared/export.js';
 
 const router = Router();
 
@@ -154,6 +156,67 @@ router.get(
       success: true,
       data: result.rows[0],
     });
+  })
+);
+
+// Download export file (proxies download from S3)
+router.get(
+  '/:id/download',
+  asyncHandler(async (req: AuthRequest, res) => {
+    const { id } = req.params;
+    const userId = req.user!.id;
+
+    // Get export and verify ownership
+    const result = await pool.query(
+      `SELECT e.*, p.title FROM exports e
+       JOIN projects p ON e.project_id = p.id
+       WHERE e.id = $1 AND p.user_id = $2`,
+      [id, userId]
+    );
+
+    if (result.rows.length === 0) {
+      throw new AppError('Export not found', 404);
+    }
+
+    const exportRecord = result.rows[0];
+
+    if (exportRecord.status !== 'completed') {
+      throw new AppError('Export is not ready for download', 400);
+    }
+
+    if (!exportRecord.file_url) {
+      throw new AppError('File URL not available', 500);
+    }
+
+    // Extract S3 key from file URL
+    const s3Key = `exports/${id}/${id}.${exportRecord.format}`;
+
+    try {
+      // Get file from S3
+      const command = new GetObjectCommand({
+        Bucket: bucketName,
+        Key: s3Key,
+      });
+
+      const s3Response = await s3Client.send(command);
+
+      // Set response headers for download
+      const filename = `${exportRecord.title || 'video'}.${exportRecord.format}`;
+      res.setHeader('Content-Type', s3Response.ContentType || `video/${exportRecord.format}`);
+      res.setHeader('Content-Length', s3Response.ContentLength || 0);
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+
+      // Stream file to client
+      if (s3Response.Body) {
+        // @ts-ignore - Body is a readable stream
+        s3Response.Body.pipe(res);
+      } else {
+        throw new Error('No file content received from storage');
+      }
+    } catch (error) {
+      console.error('Download error:', error);
+      throw new AppError('Failed to download file', 500);
+    }
   })
 );
 

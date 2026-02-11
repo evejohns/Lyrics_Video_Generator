@@ -179,7 +179,7 @@ export const RenderPresetSchema = z.enum(['ultrafast', 'fast', 'medium', 'slow',
 
 export const ExportConfigSchema = z.object({
   resolution: Resolution,
-  fps: z.enum([24, 30, 60]),
+  fps: z.union([z.literal(24), z.literal(30), z.literal(60)]),
   bitrate: z.number().positive(),
   format: VideoFormatSchema,
   codec: VideoCodecSchema,

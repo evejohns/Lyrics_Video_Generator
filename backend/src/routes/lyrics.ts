@@ -3,7 +3,7 @@ import axios from 'axios';
 import { pool } from '../config/database.js';
 import { authenticate, AuthRequest } from '../middleware/auth.js';
 import { asyncHandler, AppError } from '../middleware/errorHandler.js';
-import { CreateLyricLineSchema, AutoSyncRequestSchema } from '@shared/lyrics.js';
+import { CreateLyricLineSchema, AutoSyncRequestSchema } from 'shared/lyrics.js';
 
 const router = Router();
 

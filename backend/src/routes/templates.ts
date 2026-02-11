@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { pool } from '../config/database.js';
 import { authenticate, AuthRequest } from '../middleware/auth.js';
 import { asyncHandler, AppError } from '../middleware/errorHandler.js';
-import { CreateTemplateSchema } from '@shared/template.js';
+import { CreateTemplateSchema } from 'shared/template.js';
 
 const router = Router();
 

@@ -9,6 +9,7 @@ import DashboardPage from './pages/Dashboard';
 import NewProjectPage from './pages/NewProject';
 import ProjectEditorPage from './pages/ProjectEditor';
 import TemplatesPage from './pages/Templates';
+import EffectsLabPage from './pages/EffectsLab';
 
 function App() {
   const { isAuthenticated } = useAuthStore();
@@ -20,6 +21,7 @@ function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/effects-lab" element={<EffectsLabPage />} />
 
         {/* Protected routes */}
         <Route
