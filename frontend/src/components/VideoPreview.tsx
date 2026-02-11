@@ -20,6 +20,7 @@ interface VideoPreviewProps {
   aspectRatio?: '16:9' | '9:16' | '1:1';
   mode?: 'static' | 'animated';
   staticText?: string;
+  albumArtUrl?: string | null;
 }
 
 export default function VideoPreview({
@@ -29,6 +30,7 @@ export default function VideoPreview({
   aspectRatio = '16:9',
   mode = 'animated',
   staticText = 'Sample lyric text for preview',
+  albumArtUrl = null,
 }: VideoPreviewProps) {
   const [currentLyric, setCurrentLyric] = useState<string>('');
   const [isAnimating, setIsAnimating] = useState(false);
@@ -348,6 +350,20 @@ export default function VideoPreview({
             {displayText}
           </div>
         </div>
+
+        {/* Album Art */}
+        {albumArtUrl && (
+          <div className="absolute bottom-0 right-0 p-2 z-30">
+            <img
+              src={albumArtUrl}
+              alt="Album art"
+              className="w-12 h-12 rounded object-cover shadow-lg border border-white/20"
+              style={{
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
+              }}
+            />
+          </div>
+        )}
       </div>
 
       {/* Mode & Aspect Ratio Label */}

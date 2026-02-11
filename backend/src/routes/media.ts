@@ -32,7 +32,12 @@ router.post(
   authenticate,
   upload.single('image'),
   asyncHandler(async (req: AuthRequest, res) => {
+    console.log('Upload handler - req.file:', req.file ? 'present' : 'missing');
+    console.log('Upload handler - req.user:', req.user ? req.user.id : 'missing');
+    console.log('Upload handler - Content-Type:', req.headers['content-type']);
+
     if (!req.file) {
+      console.error('No file in request');
       throw new AppError('No image file provided', 400);
     }
 
@@ -40,6 +45,8 @@ router.post(
     const fileExt = path.extname(req.file.originalname);
     const filename = `${uuidv4()}${fileExt}`;
     const key = `images/${userId}/${filename}`;
+
+    console.log('Uploading to S3:', { key, contentType: req.file.mimetype, size: req.file.size });
 
     try {
       // Upload to S3/MinIO
@@ -53,8 +60,11 @@ router.post(
         })
       );
 
-      // Return the URL
-      const imageUrl = `${bucketUrl}/api/media/image/${userId}/${filename}`;
+      // Return the URL - use backend API endpoint, not MinIO direct URL
+      const baseUrl = process.env.API_URL || 'http://localhost:3000';
+      const imageUrl = `${baseUrl}/api/media/image/${userId}/${filename}`;
+
+      console.log('Upload successful:', imageUrl);
 
       res.json({
         success: true,
@@ -64,7 +74,7 @@ router.post(
         },
       });
     } catch (error) {
-      console.error('Image upload error:', error);
+      console.error('S3 upload error:', error);
       throw new AppError('Failed to upload image', 500);
     }
   })
@@ -164,5 +174,23 @@ router.get(
     }
   })
 );
+
+// Multer error handler
+router.use((err: any, req: any, res: any, next: any) => {
+  if (err instanceof multer.MulterError) {
+    console.error('Multer error:', err.message, err.code);
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({
+        success: false,
+        error: 'File too large. Maximum size is 10MB.',
+      });
+    }
+    return res.status(400).json({
+      success: false,
+      error: `Upload error: ${err.message}`,
+    });
+  }
+  next(err);
+});
 
 export default router;

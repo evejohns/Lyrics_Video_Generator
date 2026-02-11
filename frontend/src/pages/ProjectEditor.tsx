@@ -57,15 +57,25 @@ export default function ProjectEditor() {
 
   const handleAlbumArtUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file || !id) return;
+    if (!file || !id) {
+      console.log('No file or no project ID', { file: !!file, id });
+      return;
+    }
 
     try {
       setUploadingImage(true);
+      console.log('Starting upload...', { fileName: file.name, fileSize: file.size });
+
       const response: any = await mediaApi.uploadImage(file);
+      console.log('Upload response:', response);
       const imageUrl = response.data.url;
+      console.log('Image URL:', imageUrl);
 
       // Update project with album art URL
-      await projectsApi.update(id, { albumArtUrl: imageUrl });
+      console.log('Updating project with albumArtUrl:', { id, albumArtUrl: imageUrl });
+      const updateResponse = await projectsApi.update(id, { albumArtUrl: imageUrl });
+      console.log('Update response:', updateResponse);
+
       setAlbumArtUrl(imageUrl);
       toast.success('Album art uploaded!');
     } catch (error) {
@@ -1127,6 +1137,7 @@ export default function ProjectEditor() {
               aspectRatio="16:9"
               mode={previewMode}
               staticText="The lights are changing colors"
+              albumArtUrl={albumArtUrl}
             />
           </div>
 

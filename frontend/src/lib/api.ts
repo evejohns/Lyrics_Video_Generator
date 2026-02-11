@@ -115,7 +115,11 @@ export const mediaApi = {
     const formData = new FormData();
     formData.append('image', file);
     // Don't set Content-Type manually - let the browser set it with the boundary
-    return api.post('/media/image/upload', formData);
+    return api.post('/media/image/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
   },
 };
 
