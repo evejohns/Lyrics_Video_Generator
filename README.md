@@ -326,13 +326,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [FFmpeg](https://ffmpeg.org/) for video processing
 - All the amazing open-source libraries used in this project
 
-## 📞 Support
-
-- 📧 Email: support@lyricvideos.app
-- 💬 Discord: [Join our community](#)
-- 📚 Documentation: [docs.lyricvideos.app](#)
-- 🐛 Bug Reports: [GitHub Issues](https://github.com/yourusername/lyric-video-generator/issues)
-
 ---
 
 Made with ❤️ by musicians, for musicians.
