@@ -334,8 +334,29 @@ export default function ProjectEditor() {
     toast.success(`Found ${suggestions.length} templates that match your song!`);
   };
 
-  const handleExport = () => {
+  const handleExport = async () => {
     if (!project) return;
+    // Auto-save project config before export so the backend has the latest template/settings
+    try {
+      await projectsApi.update(project.id, {
+        title: project.title,
+        artist: project.artist,
+        config: project.config,
+      });
+      if (lyricLines && lyricLines.length > 0) {
+        const lyricsToSave = lyricLines.map(line => ({
+          text: line.text,
+          startTime: line.startTime ?? 0,
+          endTime: line.endTime ?? 0,
+        }));
+        await lyricsApi.save(project.id, lyricsToSave);
+      }
+    } catch (error) {
+      console.error('Auto-save before export failed:', error);
+      toast.error('Failed to save project before export. Please save manually and try again.');
+      return;
+    }
+    setShowStoryboard(false);
     setShowExportModal(true);
   };
 
@@ -412,9 +433,22 @@ export default function ProjectEditor() {
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
-            <div>
-              <h1 className="text-xl font-display font-bold">{project.title}</h1>
-              <p className="text-sm text-gray-400">{project.artist}</p>
+            <div className="flex items-center gap-3">
+              <input
+                type="text"
+                value={project.title}
+                onChange={(e) => setProject({ ...project, title: e.target.value })}
+                className="text-xl font-display font-bold bg-transparent border-b border-transparent hover:border-dark-600 focus:border-primary-500 focus:outline-none px-1 py-0.5 transition-colors"
+                placeholder="Song Title"
+              />
+              <span className="text-gray-600">—</span>
+              <input
+                type="text"
+                value={project.artist}
+                onChange={(e) => setProject({ ...project, artist: e.target.value })}
+                className="text-sm text-gray-400 bg-transparent border-b border-transparent hover:border-dark-600 focus:border-primary-500 focus:outline-none px-1 py-0.5 transition-colors"
+                placeholder="Artist Name"
+              />
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -1138,6 +1172,8 @@ export default function ProjectEditor() {
               mode={previewMode}
               staticText="The lights are changing colors"
               albumArtUrl={albumArtUrl}
+              title={project.title}
+              artist={project.artist}
             />
           </div>
 
@@ -1176,6 +1212,8 @@ export default function ProjectEditor() {
           aspectRatio="16:9"
           onClose={() => setShowStoryboard(false)}
           onExport={handleExport}
+          artist={project.artist}
+          title={project.title}
         />
       )}
     </div>

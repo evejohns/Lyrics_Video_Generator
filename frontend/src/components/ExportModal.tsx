@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Download, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { X, Download, Loader2, CheckCircle, AlertCircle, Image } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '../store/authStore';
 
@@ -16,6 +16,7 @@ interface ExportJob {
   progress: number;
   error?: string;
   file_url?: string;
+  thumbnail_url?: string;
 }
 
 type PresetSize = {
@@ -109,6 +110,8 @@ export default function ExportModal({ isOpen, onClose, projectId, projectTitle }
   const [format, setFormat] = useState<'mp4' | 'mov'>('mp4');
   const [generateThumbnail, setGenerateThumbnail] = useState(true);
   const [exporting, setExporting] = useState(false);
+  const [generatingThumbnail, setGeneratingThumbnail] = useState(false);
+  const [thumbnailOnly, setThumbnailOnly] = useState(false);
   const [exportJob, setExportJob] = useState<ExportJob | null>(null);
 
   // Poll for export status
@@ -130,9 +133,11 @@ export default function ExportModal({ isOpen, onClose, projectId, projectTitle }
           setExportJob(data.data);
 
           if (data.data.status === 'completed') {
-            toast.success('Video exported successfully!');
+            toast.success(thumbnailOnly ? 'Thumbnail generated!' : 'Video exported successfully!');
+            setGeneratingThumbnail(false);
           } else if (data.data.status === 'failed') {
-            toast.error(`Export failed: ${data.data.error}`);
+            toast.error(`${thumbnailOnly ? 'Thumbnail generation' : 'Export'} failed: ${data.data.error}`);
+            setGeneratingThumbnail(false);
           }
         }
       } catch (error) {
@@ -145,6 +150,7 @@ export default function ExportModal({ isOpen, onClose, projectId, projectTitle }
 
   const handleExport = async () => {
     setExporting(true);
+    setThumbnailOnly(false);
 
     // Debug: Check if token exists
     if (!token) {
@@ -167,6 +173,7 @@ export default function ExportModal({ isOpen, onClose, projectId, projectTitle }
           projectId,
           resolution: selectedSize.resolution,
           format,
+          generateThumbnail,
         }),
       });
 
@@ -192,6 +199,43 @@ export default function ExportModal({ isOpen, onClose, projectId, projectTitle }
       console.error('Failed to export:', error);
       toast.error('Failed to start export');
       setExporting(false);
+    }
+  };
+
+  const handleGenerateThumbnail = async () => {
+    setGeneratingThumbnail(true);
+    setThumbnailOnly(true);
+
+    if (!token) {
+      toast.error('Authentication token not found. Please log in again.');
+      setGeneratingThumbnail(false);
+      return;
+    }
+
+    try {
+      const response = await fetch('http://localhost:3000/api/export/thumbnail', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ projectId }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to generate thumbnail' }));
+        toast.error(errorData.message || 'Failed to generate thumbnail');
+        setGeneratingThumbnail(false);
+        return;
+      }
+
+      const data = await response.json();
+      setExportJob(data.data);
+      toast.success('Thumbnail generation started!');
+    } catch (error) {
+      console.error('Failed to generate thumbnail:', error);
+      toast.error('Failed to generate thumbnail');
+      setGeneratingThumbnail(false);
     }
   };
 
@@ -228,6 +272,35 @@ export default function ExportModal({ isOpen, onClose, projectId, projectTitle }
       });
   };
 
+  const handleDownloadThumbnail = () => {
+    if (!exportJob?.id) return;
+
+    const downloadUrl = `http://localhost:3000/api/export/${exportJob.id}/thumbnail`;
+    fetch(downloadUrl, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then(response => {
+        if (!response.ok) throw new Error('Download failed');
+        return response.blob();
+      })
+      .then(blob => {
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `${projectTitle || 'thumbnail'}-thumbnail.jpg`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      })
+      .catch(error => {
+        console.error('Thumbnail download error:', error);
+        toast.error('Failed to download thumbnail.');
+      });
+  };
+
   const handleClose = () => {
     if (exportJob?.status === 'processing' || exportJob?.status === 'queued') {
       if (!confirm('Export is still in progress. Are you sure you want to close?')) {
@@ -236,6 +309,8 @@ export default function ExportModal({ isOpen, onClose, projectId, projectTitle }
     }
     setExportJob(null);
     setExporting(false);
+    setGeneratingThumbnail(false);
+    setThumbnailOnly(false);
     onClose();
   };
 
@@ -369,24 +444,43 @@ export default function ExportModal({ isOpen, onClose, projectId, projectTitle }
                 </div>
               </div>
 
-              {/* Export Button */}
-              <button
-                onClick={handleExport}
-                disabled={exporting}
-                className="w-full btn-primary flex items-center justify-center gap-2 py-3"
-              >
-                {exporting ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    Starting Export...
-                  </>
-                ) : (
-                  <>
-                    <Download className="w-5 h-5" />
-                    Start Export
-                  </>
-                )}
-              </button>
+              {/* Export Buttons */}
+              <div className="space-y-3">
+                <button
+                  onClick={handleExport}
+                  disabled={exporting || generatingThumbnail}
+                  className="w-full btn-primary flex items-center justify-center gap-2 py-3"
+                >
+                  {exporting ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Starting Export...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-5 h-5" />
+                      Export Video
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={handleGenerateThumbnail}
+                  disabled={exporting || generatingThumbnail}
+                  className="w-full btn-secondary flex items-center justify-center gap-2 py-2.5"
+                >
+                  {generatingThumbnail ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Generating Thumbnail...
+                    </>
+                  ) : (
+                    <>
+                      <Image className="w-4 h-4" />
+                      Generate Thumbnail Only
+                    </>
+                  )}
+                </button>
+              </div>
             </>
           ) : (
             <>
@@ -408,7 +502,9 @@ export default function ExportModal({ isOpen, onClose, projectId, projectTitle }
                       <Loader2 className="w-6 h-6 text-primary-500 animate-spin" />
                       <div>
                         <p className="font-medium">Processing</p>
-                        <p className="text-sm text-gray-400">Rendering your video...</p>
+                        <p className="text-sm text-gray-400">
+                          {thumbnailOnly ? 'Generating your thumbnail...' : 'Rendering your video...'}
+                        </p>
                       </div>
                     </>
                   )}
@@ -417,7 +513,9 @@ export default function ExportModal({ isOpen, onClose, projectId, projectTitle }
                       <CheckCircle className="w-6 h-6 text-green-500" />
                       <div>
                         <p className="font-medium text-green-500">Completed!</p>
-                        <p className="text-sm text-gray-400">Your video is ready</p>
+                        <p className="text-sm text-gray-400">
+                          {thumbnailOnly ? 'Your thumbnail is ready' : 'Your video is ready'}
+                        </p>
                       </div>
                     </>
                   )}
@@ -425,7 +523,9 @@ export default function ExportModal({ isOpen, onClose, projectId, projectTitle }
                     <>
                       <AlertCircle className="w-6 h-6 text-red-500" />
                       <div>
-                        <p className="font-medium text-red-500">Export Failed</p>
+                        <p className="font-medium text-red-500">
+                          {thumbnailOnly ? 'Thumbnail Generation Failed' : 'Export Failed'}
+                        </p>
                         <p className="text-sm text-gray-400">{exportJob.error}</p>
                       </div>
                     </>
@@ -448,15 +548,28 @@ export default function ExportModal({ isOpen, onClose, projectId, projectTitle }
                   </div>
                 )}
 
-                {/* Download Button */}
-                {exportJob.status === 'completed' && exportJob.file_url && (
-                  <button
-                    onClick={handleDownload}
-                    className="w-full btn-primary flex items-center justify-center gap-2 py-3"
-                  >
-                    <Download className="w-5 h-5" />
-                    Download Video
-                  </button>
+                {/* Download Buttons */}
+                {exportJob.status === 'completed' && (
+                  <div className="space-y-2">
+                    {exportJob.file_url && !thumbnailOnly && (
+                      <button
+                        onClick={handleDownload}
+                        className="w-full btn-primary flex items-center justify-center gap-2 py-3"
+                      >
+                        <Download className="w-5 h-5" />
+                        Download Video
+                      </button>
+                    )}
+                    {exportJob.thumbnail_url && (
+                      <button
+                        onClick={handleDownloadThumbnail}
+                        className={`w-full ${thumbnailOnly ? 'btn-primary py-3' : 'btn-secondary py-2'} flex items-center justify-center gap-2`}
+                      >
+                        <Image className="w-4 h-4" />
+                        Download Thumbnail
+                      </button>
+                    )}
+                  </div>
                 )}
 
                 {/* Close Button */}

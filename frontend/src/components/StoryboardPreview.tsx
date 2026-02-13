@@ -20,6 +20,8 @@ interface StoryboardPreviewProps {
   aspectRatio: '16:9' | '9:16' | '1:1';
   onClose: () => void;
   onExport: () => void;
+  artist?: string;
+  title?: string;
 }
 
 export default function StoryboardPreview({
@@ -28,6 +30,8 @@ export default function StoryboardPreview({
   aspectRatio,
   onClose,
   onExport,
+  artist = '',
+  title = '',
 }: StoryboardPreviewProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [viewMode, setViewMode] = useState<'grid' | 'single'>('grid');
@@ -38,8 +42,13 @@ export default function StoryboardPreview({
     setCurrentIndex((prev) => Math.max(0, prev - 1));
   };
 
+  const totalScenes = validLyrics.length + 2; // +1 for title card, +1 for ending card
+  const isTitleCard = (index: number) => index === 0;
+  const isEndingCard = (index: number) => index === totalScenes - 1;
+  const getLyricIndex = (index: number) => index - 1; // offset by 1 for title card
+
   const handleNext = () => {
-    setCurrentIndex((prev) => Math.min(validLyrics.length - 1, prev + 1));
+    setCurrentIndex((prev) => Math.min(totalScenes - 1, prev + 1));
   };
 
   const formatTime = (seconds: number | null) => {
@@ -56,7 +65,7 @@ export default function StoryboardPreview({
         <div>
           <h2 className="text-2xl font-bold text-gradient">Storyboard Preview</h2>
           <p className="text-sm text-gray-400 mt-1">
-            {validLyrics.length} scenes • Preview before exporting
+            {validLyrics.length + 1} scenes • Preview before exporting
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -103,12 +112,45 @@ export default function StoryboardPreview({
         {viewMode === 'grid' ? (
           // Grid View - Show all scenes
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {/* Title Card Scene */}
+            <div
+              className="card p-4 hover:border-primary-500 transition-all cursor-pointer"
+              onClick={() => {
+                setCurrentIndex(0);
+                setViewMode('single');
+              }}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-semibold text-blue-400">
+                  Intro
+                </span>
+                <span className="text-xs text-gray-500">
+                  Title Card
+                </span>
+              </div>
+              <div className="mb-3 opacity-90 hover:opacity-100 transition-opacity">
+                <VideoPreview
+                  lyrics={[]}
+                  config={config}
+                  aspectRatio={aspectRatio}
+                  mode="static"
+                  staticText=""
+                  showTitleCard={true}
+                  artist={artist}
+                  title={title}
+                />
+              </div>
+              <p className="text-sm text-gray-300 line-clamp-2 text-center">
+                {title} {artist ? `- ${artist}` : ''}
+              </p>
+            </div>
+
             {validLyrics.map((lyric, index) => (
               <div
                 key={index}
                 className="card p-4 hover:border-primary-500 transition-all cursor-pointer"
                 onClick={() => {
-                  setCurrentIndex(index);
+                  setCurrentIndex(index + 1);
                   setViewMode('single');
                 }}
               >
@@ -139,6 +181,39 @@ export default function StoryboardPreview({
                 </p>
               </div>
             ))}
+
+            {/* Ending Card Scene */}
+            <div
+              className="card p-4 hover:border-primary-500 transition-all cursor-pointer"
+              onClick={() => {
+                setCurrentIndex(totalScenes - 1);
+                setViewMode('single');
+              }}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-semibold text-red-400">
+                  Ending
+                </span>
+                <span className="text-xs text-gray-500">
+                  Outro Card
+                </span>
+              </div>
+              <div className="mb-3 opacity-90 hover:opacity-100 transition-opacity">
+                <VideoPreview
+                  lyrics={[]}
+                  config={config}
+                  aspectRatio={aspectRatio}
+                  mode="static"
+                  staticText=""
+                  showEndingCard={true}
+                  artist={artist}
+                  title={title}
+                />
+              </div>
+              <p className="text-sm text-gray-300 line-clamp-2 text-center">
+                Subscribe / Like / Comment
+              </p>
+            </div>
           </div>
         ) : (
           // Single View - Show one scene at a time
@@ -147,11 +222,15 @@ export default function StoryboardPreview({
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h3 className="text-xl font-semibold text-white">
-                  Scene {currentIndex + 1} of {validLyrics.length}
+                  {isTitleCard(currentIndex) ? 'Title Card' : isEndingCard(currentIndex) ? 'Ending Card' : `Scene ${getLyricIndex(currentIndex) + 1}`} of {totalScenes}
                 </h3>
                 <p className="text-sm text-gray-400 mt-1">
-                  {formatTime(validLyrics[currentIndex]?.startTime)} -{' '}
-                  {formatTime(validLyrics[currentIndex]?.endTime)}
+                  {isTitleCard(currentIndex)
+                    ? 'Intro • Title Card'
+                    : isEndingCard(currentIndex)
+                    ? 'Outro • Subscribe / Like / Comment'
+                    : `${formatTime(validLyrics[getLyricIndex(currentIndex)]?.startTime)} - ${formatTime(validLyrics[getLyricIndex(currentIndex)]?.endTime)}`
+                  }
                 </p>
               </div>
 
@@ -165,11 +244,11 @@ export default function StoryboardPreview({
                   <ChevronLeft className="w-5 h-5" />
                 </button>
                 <span className="text-sm text-gray-400 min-w-[80px] text-center">
-                  {currentIndex + 1} / {validLyrics.length}
+                  {currentIndex + 1} / {totalScenes}
                 </span>
                 <button
                   onClick={handleNext}
-                  disabled={currentIndex === validLyrics.length - 1}
+                  disabled={currentIndex === totalScenes - 1}
                   className="p-2 rounded-lg bg-dark-700 hover:bg-dark-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   <ChevronRight className="w-5 h-5" />
@@ -179,20 +258,51 @@ export default function StoryboardPreview({
 
             {/* Large Preview */}
             <div className="mb-6">
-              <VideoPreview
-                lyrics={[validLyrics[currentIndex]]}
-                config={config}
-                aspectRatio={aspectRatio}
-                mode="static"
-                staticText={validLyrics[currentIndex]?.text}
-              />
+              {isTitleCard(currentIndex) ? (
+                <VideoPreview
+                  lyrics={[]}
+                  config={config}
+                  aspectRatio={aspectRatio}
+                  mode="static"
+                  staticText=""
+                  showTitleCard={true}
+                  artist={artist}
+                  title={title}
+                />
+              ) : isEndingCard(currentIndex) ? (
+                <VideoPreview
+                  lyrics={[]}
+                  config={config}
+                  aspectRatio={aspectRatio}
+                  mode="static"
+                  staticText=""
+                  showEndingCard={true}
+                  artist={artist}
+                  title={title}
+                />
+              ) : (
+                <VideoPreview
+                  lyrics={[validLyrics[getLyricIndex(currentIndex)]]}
+                  config={config}
+                  aspectRatio={aspectRatio}
+                  mode="static"
+                  staticText={validLyrics[getLyricIndex(currentIndex)]?.text}
+                />
+              )}
             </div>
 
             {/* Lyric Text */}
             <div className="card p-6">
-              <h4 className="text-sm font-semibold text-gray-400 mb-2">Lyric Text</h4>
+              <h4 className="text-sm font-semibold text-gray-400 mb-2">
+                {isTitleCard(currentIndex) ? 'Title Card' : isEndingCard(currentIndex) ? 'Ending Card' : 'Lyric Text'}
+              </h4>
               <p className="text-lg text-white leading-relaxed">
-                {validLyrics[currentIndex]?.text}
+                {isTitleCard(currentIndex)
+                  ? `${title || ''} ${artist ? `- ${artist}` : ''} • Official Lyric Video`
+                  : isEndingCard(currentIndex)
+                  ? `${artist || title || ''} • Subscribe / Like / Comment / Notify`
+                  : validLyrics[getLyricIndex(currentIndex)]?.text
+                }
               </p>
             </div>
 
@@ -200,12 +310,39 @@ export default function StoryboardPreview({
             <div className="mt-6">
               <h4 className="text-sm font-semibold text-gray-400 mb-3">All Scenes</h4>
               <div className="flex gap-3 overflow-x-auto pb-4 scrollbar-thin">
+                {/* Title Card Thumbnail */}
+                <button
+                  onClick={() => setCurrentIndex(0)}
+                  className={`flex-shrink-0 w-32 rounded-lg overflow-hidden border-2 transition-all ${
+                    currentIndex === 0
+                      ? 'border-blue-500 ring-2 ring-blue-500/50'
+                      : 'border-dark-600 hover:border-dark-500'
+                  }`}
+                >
+                  <div className="aspect-video bg-dark-800">
+                    <VideoPreview
+                      lyrics={[]}
+                      config={config}
+                      aspectRatio={aspectRatio}
+                      mode="static"
+                      staticText=""
+                      showTitleCard={true}
+                      artist={artist}
+                      title={title}
+                    />
+                  </div>
+                  <div className="bg-dark-800 px-2 py-1">
+                    <p className="text-xs text-blue-400 text-center">
+                      Intro
+                    </p>
+                  </div>
+                </button>
                 {validLyrics.map((lyric, index) => (
                   <button
                     key={index}
-                    onClick={() => setCurrentIndex(index)}
+                    onClick={() => setCurrentIndex(index + 1)}
                     className={`flex-shrink-0 w-32 rounded-lg overflow-hidden border-2 transition-all ${
-                      index === currentIndex
+                      index + 1 === currentIndex
                         ? 'border-primary-500 ring-2 ring-primary-500/50'
                         : 'border-dark-600 hover:border-dark-500'
                     }`}
@@ -226,6 +363,33 @@ export default function StoryboardPreview({
                     </div>
                   </button>
                 ))}
+                {/* Ending Card Thumbnail */}
+                <button
+                  onClick={() => setCurrentIndex(totalScenes - 1)}
+                  className={`flex-shrink-0 w-32 rounded-lg overflow-hidden border-2 transition-all ${
+                    currentIndex === totalScenes - 1
+                      ? 'border-red-500 ring-2 ring-red-500/50'
+                      : 'border-dark-600 hover:border-dark-500'
+                  }`}
+                >
+                  <div className="aspect-video bg-dark-800">
+                    <VideoPreview
+                      lyrics={[]}
+                      config={config}
+                      aspectRatio={aspectRatio}
+                      mode="static"
+                      staticText=""
+                      showEndingCard={true}
+                      artist={artist}
+                      title={title}
+                    />
+                  </div>
+                  <div className="bg-dark-800 px-2 py-1">
+                    <p className="text-xs text-red-400 text-center">
+                      Ending
+                    </p>
+                  </div>
+                </button>
               </div>
             </div>
           </div>
@@ -236,7 +400,7 @@ export default function StoryboardPreview({
       <div className="border-t border-dark-700 p-6 flex items-center justify-between">
         <div className="text-sm text-gray-400">
           <p>
-            <span className="font-semibold text-white">{validLyrics.length}</span> scenes ready for
+            <span className="font-semibold text-white">{totalScenes}</span> scenes ready for
             export
           </p>
           <p className="text-xs mt-1">

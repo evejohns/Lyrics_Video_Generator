@@ -59,6 +59,7 @@ CREATE TABLE IF NOT EXISTS exports (
   resolution VARCHAR(10) NOT NULL,
   format VARCHAR(10) NOT NULL,
   file_url TEXT,
+  thumbnail_url TEXT,
   file_size_mb FLOAT,
   youtube_video_id VARCHAR(50),
   status VARCHAR(50) NOT NULL DEFAULT 'queued' CHECK (status IN ('queued', 'processing', 'completed', 'failed')),

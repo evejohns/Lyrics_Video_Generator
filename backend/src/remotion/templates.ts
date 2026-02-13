@@ -146,11 +146,11 @@ export const templates: TemplatePreset[] = [
     name: 'Hot Fire',
     category: 'vibrant',
     description: 'Intense red gradient for rock and hip-hop',
-    gradient: ['#7F1D1D', '#DC2626', '#F59E0B'],
+    gradient: ['#7F1D1D', '#DC2626', '#D97706'],
     config: {
       background: {
         type: 'gradient',
-        colors: ['#7F1D1D', '#DC2626', '#F59E0B'],
+        colors: ['#7F1D1D', '#DC2626', '#D97706'],
         gradientType: 'radial',
       },
       text: {
@@ -1221,6 +1221,60 @@ export const templates: TemplatePreset[] = [
       },
     },
   },
+  {
+    id: 'electric-explosion',
+    name: 'Electric Explosion',
+    category: 'vibrant',
+    description: 'High-voltage rock energy with electric sparks',
+    gradient: ['#0A0A0A', '#1A0A2E', '#FF4500'],
+    config: {
+      background: {
+        type: 'gradient',
+        colors: ['#0A0A0A', '#1A0A2E', '#FF4500'],
+        gradientType: 'radial',
+        pattern: 'pattern-diagonal pattern-dots',
+      },
+      text: {
+        font: 'Montserrat',
+        size: 64,
+        weight: '900',
+        color: '#FFFFFF',
+        styleEffect: '3d',
+        alignment: 'center',
+        position: { x: 50, y: 50 },
+        maxWidth: 85,
+        animation: 'pop',
+        animationDuration: 0.3,
+        displayMode: 'single',
+        outline: {
+          enabled: true,
+          color: '#000000',
+          width: 5,
+        },
+        shadow: {
+          enabled: true,
+          color: '#FF4500',
+          blur: 30,
+          offsetX: 0,
+          offsetY: 0,
+        },
+      },
+      effects: {
+        emojis: false,
+        filmGrain: true,
+        vhsEffect: true,
+        glitchEffect: true,
+        decorativeShapes: [
+          { type: 'emoji', emoji: '⚡', size: '120px', top: '5%', left: '5%', color: 'rgba(255, 255, 255, 0.4)', animation: 'animate-float-fast' },
+          { type: 'emoji', emoji: '🔥', size: '110px', top: '65%', left: '80%', color: 'rgba(255, 255, 255, 0.35)', animation: 'animate-float-medium' },
+          { type: 'emoji', emoji: '💥', size: '100px', top: '10%', left: '75%', color: 'rgba(255, 255, 255, 0.3)', animation: 'animate-float-fast' },
+          { type: 'emoji', emoji: '⚡', size: '90px', top: '70%', left: '10%', color: 'rgba(255, 255, 255, 0.35)', animation: 'animate-float-medium' },
+          { type: 'triangle', size: '200px', top: '20%', left: '65%', color: 'rgba(255, 69, 0, 0.08)', animation: 'animate-spin-slow', rotate: 30 },
+          { type: 'triangle', size: '160px', top: '55%', left: '25%', color: 'rgba(255, 215, 0, 0.06)', animation: 'animate-spin-slow', rotate: -15 },
+        ],
+      },
+    },
+  },
 ];
 
 export const templateCategories = [
@@ -1266,6 +1320,7 @@ export function suggestTemplates(title: string, artist: string, lyrics: string =
     'classical-rococo': ['classical', 'baroque', 'elegant', 'orchestra', 'symphony', 'vintage', 'ornate'],
     'acid-house': ['acid', 'house', 'rave', 'techno', 'edm', 'club', 'trippy', 'electronic'],
     'kawaii-dream': ['kawaii', 'cute', 'japan', 'anime', 'pastel', 'soft', 'sweet', 'adorable'],
+    'electric-explosion': ['explosion', 'electric', 'lightning', 'thunder', 'spark', 'burn', 'bright', 'fire', 'loud', 'scream', 'energy', 'power', 'rage', 'rebel', 'defiant', 'fierce'],
   };
 
   // Check for Christmas/holiday themes with lights

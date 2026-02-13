@@ -21,6 +21,10 @@ interface VideoPreviewProps {
   mode?: 'static' | 'animated';
   staticText?: string;
   albumArtUrl?: string | null;
+  showEndingCard?: boolean;
+  showTitleCard?: boolean;
+  artist?: string;
+  title?: string;
 }
 
 export default function VideoPreview({
@@ -31,6 +35,10 @@ export default function VideoPreview({
   mode = 'animated',
   staticText = 'Sample lyric text for preview',
   albumArtUrl = null,
+  showEndingCard = false,
+  showTitleCard = false,
+  artist = '',
+  title = '',
 }: VideoPreviewProps) {
   const [currentLyric, setCurrentLyric] = useState<string>('');
   const [isAnimating, setIsAnimating] = useState(false);
@@ -319,8 +327,210 @@ export default function VideoPreview({
           </div>
         )}
 
+        {/* Title Card Overlay */}
+        {showTitleCard && (
+          <div className="absolute inset-0 flex flex-row items-center justify-center p-4 z-20" style={{ gap: '16px' }}>
+            {/* Text Info - Right Side */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '0px', maxWidth: '80%' }}>
+              {/* Artist Name */}
+              {artist && (
+                <div
+                  style={{
+                    fontFamily: config.fontFamily || 'Inter',
+                    fontSize: `${(config.fontSize || 48) * 0.25}px`,
+                    color: '#FFFFFF',
+                    fontWeight: '600',
+                    textAlign: 'left',
+                    textShadow: '0 0 30px rgba(0,0,0,1), 0 0 20px rgba(0,0,0,0.95), 0 6px 12px rgba(0,0,0,0.9), 0 3px 6px rgba(0,0,0,0.85)',
+                    WebkitTextStroke: `${Math.max(1, optimalColors.outlineWidth * 0.4)}px ${optimalColors.outline}`,
+                    paintOrder: 'stroke fill',
+                    letterSpacing: '0.08em',
+                    textTransform: 'uppercase',
+                    marginBottom: '4px',
+                  }}
+                >
+                  {artist}
+                </div>
+              )}
+
+              {/* Song Title */}
+              <div
+                style={{
+                  fontFamily: config.fontFamily || 'Inter',
+                  fontSize: `${(config.fontSize || 48) * 0.5}px`,
+                  color: '#FFFFFF',
+                  fontWeight: '900',
+                  textAlign: 'left',
+                  textShadow: '0 0 30px rgba(0,0,0,1), 0 0 20px rgba(0,0,0,0.95), 0 6px 12px rgba(0,0,0,0.9), 0 3px 6px rgba(0,0,0,0.85)',
+                  WebkitTextStroke: `${optimalColors.outlineWidth}px ${optimalColors.outline}`,
+                  paintOrder: 'stroke fill',
+                  lineHeight: 1.05,
+                  letterSpacing: '-0.02em',
+                }}
+              >
+                {title || ''}
+              </div>
+
+              {/* Lyrics Video label */}
+              <div
+                style={{
+                  fontFamily: config.fontFamily || 'Inter',
+                  fontSize: '8px',
+                  color: '#FFFFFF',
+                  fontWeight: '500',
+                  textAlign: 'left',
+                  textShadow: '0 0 30px rgba(0,0,0,1), 0 0 20px rgba(0,0,0,0.95), 0 6px 12px rgba(0,0,0,0.9), 0 3px 6px rgba(0,0,0,0.85)',
+                  WebkitTextStroke: `${Math.max(1, optimalColors.outlineWidth * 0.3)}px ${optimalColors.outline}`,
+                  paintOrder: 'stroke fill',
+                  letterSpacing: '0.15em',
+                  textTransform: 'uppercase',
+                  marginTop: '6px',
+                }}
+              >
+                Lyrics Video
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Ending Card Overlay */}
+        {showEndingCard && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center p-4 z-20 gap-2">
+            {/* Artist Name */}
+            <div
+              style={{
+                fontFamily: config.fontFamily || 'Inter',
+                fontSize: `${(config.fontSize || 48) * 0.55}px`,
+                color: optimalColors.text,
+                fontWeight: '900',
+                textAlign: 'center',
+                textShadow: optimalColors.shadow,
+                WebkitTextStroke: `${optimalColors.outlineWidth}px ${optimalColors.outline}`,
+                paintOrder: 'stroke fill',
+                letterSpacing: '-0.02em',
+                maxWidth: '90%',
+                lineHeight: 1.2,
+              }}
+            >
+              {artist || title || ''}
+            </div>
+
+            {/* Subscribe Button */}
+            <div
+              style={{
+                background: 'linear-gradient(135deg, #FF0000 0%, #CC0000 100%)',
+                borderRadius: '6px',
+                padding: '4px 20px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                boxShadow: '0 2px 8px rgba(255,0,0,0.4)',
+                border: '1px solid rgba(255,255,255,0.2)',
+                marginTop: '4px',
+              }}
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="white">
+                <path d="M10 8.64L15.27 12 10 15.36V8.64M8 5v14l11-7L8 5z" />
+              </svg>
+              <span
+                style={{
+                  fontFamily: config.fontFamily || 'Inter',
+                  fontSize: '11px',
+                  color: '#FFFFFF',
+                  fontWeight: '900',
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                }}
+              >
+                Subscribe
+              </span>
+            </div>
+
+            {/* Action Icons Row */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginTop: '4px' }}>
+              {/* Like */}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+                <div
+                  style={{
+                    width: '24px',
+                    height: '24px',
+                    borderRadius: '50%',
+                    backgroundColor: 'rgba(255,255,255,0.15)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    border: '1px solid rgba(255,255,255,0.2)',
+                  }}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill={optimalColors.text}>
+                    <path d="M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z" />
+                  </svg>
+                </div>
+                <span style={{ fontSize: '6px', color: optimalColors.text, fontWeight: '600' }}>Like</span>
+              </div>
+              {/* Comment */}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+                <div
+                  style={{
+                    width: '24px',
+                    height: '24px',
+                    borderRadius: '50%',
+                    backgroundColor: 'rgba(255,255,255,0.15)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    border: '1px solid rgba(255,255,255,0.2)',
+                  }}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill={optimalColors.text}>
+                    <path d="M21.99 4c0-1.1-.89-2-1.99-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14l4 4-.01-18z" />
+                  </svg>
+                </div>
+                <span style={{ fontSize: '6px', color: optimalColors.text, fontWeight: '600' }}>Comment</span>
+              </div>
+              {/* Bell */}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+                <div
+                  style={{
+                    width: '24px',
+                    height: '24px',
+                    borderRadius: '50%',
+                    backgroundColor: 'rgba(255,255,255,0.15)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    border: '1px solid rgba(255,255,255,0.2)',
+                  }}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill={optimalColors.text}>
+                    <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z" />
+                  </svg>
+                </div>
+                <span style={{ fontSize: '6px', color: optimalColors.text, fontWeight: '600' }}>Notify</span>
+              </div>
+            </div>
+
+            {/* Thanks for watching */}
+            <div
+              style={{
+                fontFamily: config.fontFamily || 'Inter',
+                fontSize: '8px',
+                color: optimalColors.text,
+                fontWeight: '500',
+                textAlign: 'center',
+                textShadow: optimalColors.shadow,
+                letterSpacing: '0.15em',
+                textTransform: 'uppercase',
+                marginTop: '2px',
+              }}
+            >
+              Thanks for watching
+            </div>
+          </div>
+        )}
+
         {/* Lyrics Text */}
-        <div className="absolute inset-0 flex items-center justify-center p-8 z-20">
+        {!showEndingCard && !showTitleCard && <div className="absolute inset-0 flex items-center justify-center p-8 z-20">
           <div
             data-text={displayText}
             className={`text-center ${animationClass} ${continuousTextEffects} ${textHighlight} ${
@@ -349,7 +559,41 @@ export default function VideoPreview({
           >
             {displayText}
           </div>
-        </div>
+        </div>}
+
+        {/* Music Emoji during instrumental gaps (3+ seconds with no lyrics) */}
+        {mode === 'animated' && !showTitleCard && !showEndingCard && !currentLyric && (() => {
+          const MIN_GAP = 3;
+          let prevEnd = 0;
+          let nextStart = Infinity;
+
+          for (const lyric of lyrics) {
+            if (!lyric.startTime) continue;
+            const lEnd = lyric.endTime || lyric.startTime + 5;
+            if (lEnd <= currentTime && lEnd > prevEnd) prevEnd = lEnd;
+            if (lyric.startTime > currentTime && lyric.startTime < nextStart) nextStart = lyric.startTime;
+          }
+
+          const gapDuration = nextStart - prevEnd;
+          if (gapDuration < MIN_GAP) return null;
+
+          return (
+            <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
+              <div
+                style={{
+                  fontSize: `${(config.fontSize || 48) * 0.75}px`,
+                  color: optimalColors.text,
+                  textShadow: optimalColors.shadow,
+                  WebkitTextStroke: `${optimalColors.outlineWidth}px ${optimalColors.outline}`,
+                  paintOrder: 'stroke fill',
+                  letterSpacing: '0.3em',
+                }}
+              >
+                ♪ ♫ ♪
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Album Art */}
         {albumArtUrl && (

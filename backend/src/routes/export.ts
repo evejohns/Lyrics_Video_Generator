@@ -114,6 +114,7 @@ router.post(
         lyrics: lyrics.rows,
         resolution: data.resolution,
         format: data.format,
+        generateThumbnail: req.body.generateThumbnail !== false,
         userId,
       },
       {
@@ -133,6 +134,74 @@ router.post(
   })
 );
 
+// Generate thumbnail only (no video render)
+router.post(
+  '/thumbnail',
+  asyncHandler(async (req: AuthRequest, res) => {
+    const userId = req.user!.id;
+    const { projectId } = req.body;
+
+    if (!projectId) {
+      throw new AppError('projectId is required', 400);
+    }
+
+    // Verify project ownership
+    const project = await pool.query(
+      'SELECT * FROM projects WHERE id = $1 AND user_id = $2',
+      [projectId, userId]
+    );
+
+    if (project.rows.length === 0) {
+      throw new AppError('Project not found', 404);
+    }
+
+    // Get lyrics for the project
+    const lyrics = await pool.query(
+      'SELECT * FROM lyrics WHERE project_id = $1 ORDER BY line_number ASC',
+      [projectId]
+    );
+
+    // Create export record for thumbnail
+    const exportResult = await pool.query(
+      `INSERT INTO exports (project_id, resolution, format, status, progress)
+       VALUES ($1, '1080p', 'mp4', 'queued', 0)
+       RETURNING *`,
+      [projectId]
+    );
+
+    const exportRecord = exportResult.rows[0];
+
+    // Add thumbnail-only job to render queue
+    await renderQueue.add(
+      'render-video',
+      {
+        exportId: exportRecord.id,
+        projectId,
+        project: project.rows[0],
+        lyrics: lyrics.rows,
+        resolution: '1080p',
+        format: 'mp4',
+        generateThumbnail: true,
+        thumbnailOnly: true,
+        userId,
+      },
+      {
+        attempts: 3,
+        backoff: {
+          type: 'exponential',
+          delay: 5000,
+        },
+      }
+    );
+
+    res.status(201).json({
+      success: true,
+      data: exportRecord,
+      message: 'Thumbnail generation started',
+    });
+  })
+);
+
 // Get export status
 router.get(
   '/:id/status',
@@ -141,7 +210,7 @@ router.get(
     const userId = req.user!.id;
 
     const result = await pool.query(
-      `SELECT e.id, e.status, e.progress, e.error, e.file_url, e.created_at, e.completed_at
+      `SELECT e.id, e.status, e.progress, e.error, e.file_url, e.thumbnail_url, e.created_at, e.completed_at
        FROM exports e
        JOIN projects p ON e.project_id = p.id
        WHERE e.id = $1 AND p.user_id = $2`,
@@ -216,6 +285,58 @@ router.get(
     } catch (error) {
       console.error('Download error:', error);
       throw new AppError('Failed to download file', 500);
+    }
+  })
+);
+
+// Download thumbnail
+router.get(
+  '/:id/thumbnail',
+  asyncHandler(async (req: AuthRequest, res) => {
+    const { id } = req.params;
+    const userId = req.user!.id;
+
+    const result = await pool.query(
+      `SELECT e.*, p.title FROM exports e
+       JOIN projects p ON e.project_id = p.id
+       WHERE e.id = $1 AND p.user_id = $2`,
+      [id, userId]
+    );
+
+    if (result.rows.length === 0) {
+      throw new AppError('Export not found', 404);
+    }
+
+    const exportRecord = result.rows[0];
+
+    if (!exportRecord.thumbnail_url) {
+      throw new AppError('Thumbnail not available', 404);
+    }
+
+    const s3Key = `exports/${id}/${id}-thumbnail.jpg`;
+
+    try {
+      const command = new GetObjectCommand({
+        Bucket: bucketName,
+        Key: s3Key,
+      });
+
+      const s3Response = await s3Client.send(command);
+
+      const filename = `${exportRecord.title || 'thumbnail'}-thumbnail.jpg`;
+      res.setHeader('Content-Type', 'image/jpeg');
+      res.setHeader('Content-Length', s3Response.ContentLength || 0);
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+
+      if (s3Response.Body) {
+        // @ts-ignore - Body is a readable stream
+        s3Response.Body.pipe(res);
+      } else {
+        throw new Error('No file content received from storage');
+      }
+    } catch (error) {
+      console.error('Thumbnail download error:', error);
+      throw new AppError('Failed to download thumbnail', 500);
     }
   })
 );
