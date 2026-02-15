@@ -31,7 +31,12 @@ export const LyricVideo: React.FC<LyricVideoProps> = ({
   artist,
 }) => {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
+  const { fps, width, height } = useVideoConfig();
+
+  // Compute responsive scale factor based on the shorter dimension
+  // 1080p landscape (1920x1080): scale=1, 1080p vertical (1080x1920): scale=1, 4K: scale=2
+  const scale = Math.min(width, height) / 1080;
+  const isVertical = height > width;
 
   // Delay rendering until Google Fonts are loaded
   const [fontHandle] = React.useState(() => delayRender('Loading Google Fonts'));
@@ -154,6 +159,11 @@ export const LyricVideo: React.FC<LyricVideoProps> = ({
   // Get background effects from config
   const backgroundEffects = config.backgroundEffects || [];
 
+  // Get visual effects from config (sparkle, light-rays, etc.)
+  const visualEffects = config.visualEffects || [];
+  const hasSparkle = visualEffects.includes('sparkle');
+  const hasLightRays = visualEffects.includes('light-rays');
+
   // Animation calculations with Remotion's interpolate for smoother transitions
   // Gradient Shift: 8 seconds cycle using interpolate
   const gradientCycleFrame = frame % (fps * 8);
@@ -188,6 +198,34 @@ export const LyricVideo: React.FC<LyricVideoProps> = ({
   const backgroundFilter = hasColorWave
     ? `hue-rotate(${hueRotation}deg) saturate(${saturation})`
     : 'none';
+
+  // Sparkle effect: brightness + drop-shadow pulsing on text (1.5s cycle)
+  const sparkleCycleFrame = frame % (fps * 1.5);
+  const sparkleBrightness = hasSparkle
+    ? interpolate(
+        sparkleCycleFrame,
+        [0, fps * 0.75, fps * 1.5],
+        [1, 1.3, 1],
+        { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }
+      )
+    : 1;
+  const sparkleGlow = hasSparkle
+    ? interpolate(
+        sparkleCycleFrame,
+        [0, fps * 0.75, fps * 1.5],
+        [0, 8, 0],
+        { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }
+      )
+    : 0;
+
+  // Light rays: rotating conic gradient (20s cycle)
+  const lightRaysCycleFrame = frame % (fps * 20);
+  const lightRaysRotation = interpolate(
+    lightRaysCycleFrame,
+    [0, fps * 20],
+    [0, 360],
+    { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }
+  );
 
   // Build text style effect inline styles (replicate CSS effects for Remotion)
   // Shared between lyrics and music emoji for consistent styling
@@ -373,6 +411,37 @@ export const LyricVideo: React.FC<LyricVideoProps> = ({
         />
       )}
 
+      {/* Light Rays Effect — rotating conic gradient overlay */}
+      {hasLightRays && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '-50%',
+            left: '-50%',
+            width: '200%',
+            height: '200%',
+            background: `conic-gradient(
+              from 0deg,
+              transparent 0deg,
+              rgba(255, 255, 255, 0.1) 30deg,
+              transparent 60deg,
+              rgba(255, 255, 255, 0.1) 90deg,
+              transparent 120deg,
+              rgba(255, 255, 255, 0.1) 150deg,
+              transparent 180deg,
+              rgba(255, 255, 255, 0.1) 210deg,
+              transparent 240deg,
+              rgba(255, 255, 255, 0.1) 270deg,
+              transparent 300deg,
+              rgba(255, 255, 255, 0.1) 330deg,
+              transparent 360deg
+            )`,
+            transform: `rotate(${lightRaysRotation}deg)`,
+            pointerEvents: 'none',
+          }}
+        />
+      )}
+
       {/* Decorative Elements with Animation Matching Preview */}
       {decorativeElements.map((shape: any, index: number) => {
         // Match animation behavior to CSS classes used in preview
@@ -506,10 +575,10 @@ export const LyricVideo: React.FC<LyricVideoProps> = ({
           floatOpacity = 0.4;
         }
 
-        // Scale shapes for 1920x1080 video (2x larger than preview)
+        // Scale shapes proportionally to video dimensions
         const scaleSize = (size: string) => {
           const px = parseInt(size);
-          return `${px * 2}px`;
+          return `${Math.round(px * scale * 2)}px`;
         };
 
         const shapeStyle: React.CSSProperties = {
@@ -574,7 +643,7 @@ export const LyricVideo: React.FC<LyricVideoProps> = ({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: '64px',
+          padding: `${Math.round(40 * scale)}px`,
         }}
       >
         {(() => {
@@ -599,19 +668,23 @@ export const LyricVideo: React.FC<LyricVideoProps> = ({
             const fontFamily = userFontFamily;
             const baseFontSize = userFontSize;
 
+            // For vertical: stack album art above text; for landscape: side by side
+            const albumArtSize = Math.round((isVertical ? 280 : 480) * scale);
+            const titleGap = Math.round((isVertical ? 40 : 100) * scale);
+
             return (
               <div
                 style={{
                   display: 'flex',
-                  flexDirection: 'row',
+                  flexDirection: isVertical ? 'column' : 'row',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: albumArtUrl ? '100px' : '0px',
+                  gap: albumArtUrl ? `${titleGap}px` : '0px',
                   opacity: titleCardOpacity,
                   width: '100%',
                 }}
               >
-                {/* Album Art - Left Side */}
+                {/* Album Art */}
                 {albumArtUrl && (
                   <div
                     style={{
@@ -624,25 +697,27 @@ export const LyricVideo: React.FC<LyricVideoProps> = ({
                       crossOrigin="anonymous"
                       alt="Album Art"
                       style={{
-                        width: '480px',
-                        height: '480px',
-                        borderRadius: '24px',
+                        width: `${albumArtSize}px`,
+                        height: `${albumArtSize}px`,
+                        borderRadius: `${Math.round(24 * scale)}px`,
                         objectFit: 'cover',
                         boxShadow: '0 20px 60px rgba(0,0,0,0.4), 0 10px 30px rgba(0,0,0,0.25)',
-                        border: '4px solid rgba(255,255,255,0.15)',
+                        border: `${Math.round(4 * scale)}px solid rgba(255,255,255,0.15)`,
                       }}
                     />
                   </div>
                 )}
 
-                {/* Text Info - Right Side (same color/effect/outline as lyrics) */}
+                {/* Text Info */}
                 <div
                   style={{
                     display: 'flex',
                     flexDirection: 'column',
-                    alignItems: albumArtUrl ? 'flex-start' : 'center',
+                    alignItems: (albumArtUrl && !isVertical) ? 'flex-start' : 'center',
                     gap: '0px',
-                    maxWidth: albumArtUrl ? '55%' : '85%',
+                    maxWidth: (albumArtUrl && !isVertical) ? '55%' : '85%',
+                    wordWrap: 'break-word',
+                    overflowWrap: 'break-word',
                   }}
                 >
                   {/* Artist Name */}
@@ -653,7 +728,7 @@ export const LyricVideo: React.FC<LyricVideoProps> = ({
                         fontSize: `${baseFontSize * 0.75}px`,
                         color: '#FFFFFF',
                         fontWeight: '600',
-                        textAlign: albumArtUrl ? 'left' : 'center',
+                        textAlign: (albumArtUrl && !isVertical) ? 'left' : 'center',
                         textShadow: '0 0 30px rgba(0,0,0,1), 0 0 20px rgba(0,0,0,0.95), 0 6px 12px rgba(0,0,0,0.9), 0 3px 6px rgba(0,0,0,0.85)',
                         WebkitTextStroke: `${Math.max(1, outlineWidth * 0.4)}px ${outlineColor}`,
                         paintOrder: 'stroke fill',
@@ -661,7 +736,7 @@ export const LyricVideo: React.FC<LyricVideoProps> = ({
                         transform: `translateY(${artistY}px)`,
                         letterSpacing: '0.08em',
                         textTransform: 'uppercase',
-                        marginBottom: '16px',
+                        marginBottom: `${Math.round(16 * scale)}px`,
                       }}
                     >
                       {artist}
@@ -672,10 +747,10 @@ export const LyricVideo: React.FC<LyricVideoProps> = ({
                   <div
                     style={{
                       fontFamily,
-                      fontSize: `${albumArtUrl ? baseFontSize * 1.6 : baseFontSize * 1.8}px`,
+                      fontSize: `${(isVertical ? baseFontSize * 1.2 : (albumArtUrl ? baseFontSize * 1.6 : baseFontSize * 1.8))}px`,
                       color: '#FFFFFF',
                       fontWeight: '900',
-                      textAlign: albumArtUrl ? 'left' : 'center',
+                      textAlign: (albumArtUrl && !isVertical) ? 'left' : 'center',
                       textShadow: '0 0 30px rgba(0,0,0,1), 0 0 20px rgba(0,0,0,0.95), 0 6px 12px rgba(0,0,0,0.9), 0 3px 6px rgba(0,0,0,0.85)',
                       WebkitTextStroke: `${outlineWidth}px ${outlineColor}`,
                       paintOrder: 'stroke fill',
@@ -694,14 +769,14 @@ export const LyricVideo: React.FC<LyricVideoProps> = ({
                       fontSize: `${baseFontSize * 0.55}px`,
                       color: '#FFFFFF',
                       fontWeight: '500',
-                      textAlign: albumArtUrl ? 'left' : 'center',
+                      textAlign: (albumArtUrl && !isVertical) ? 'left' : 'center',
                       letterSpacing: '0.15em',
                       textTransform: 'uppercase',
                       opacity: subtitleOpacity * 0.7,
                       textShadow: '0 0 30px rgba(0,0,0,1), 0 0 20px rgba(0,0,0,0.95), 0 6px 12px rgba(0,0,0,0.9), 0 3px 6px rgba(0,0,0,0.85)',
                       WebkitTextStroke: `${Math.max(1, outlineWidth * 0.3)}px ${outlineColor}`,
                       paintOrder: 'stroke fill',
-                      marginTop: '24px',
+                      marginTop: `${Math.round(24 * scale)}px`,
                     }}
                   >
                     Lyric Video
@@ -869,6 +944,11 @@ export const LyricVideo: React.FC<LyricVideoProps> = ({
           // Combine entrance and exit opacity
           const finalOpacity = Math.min(entranceOpacity, exitOpacity);
 
+          // Build sparkle filter for text
+          const sparkleFilter = hasSparkle
+            ? `brightness(${sparkleBrightness}) drop-shadow(0 0 ${sparkleGlow}px ${textColor})`
+            : '';
+
           return (
             <div
               style={{
@@ -878,13 +958,17 @@ export const LyricVideo: React.FC<LyricVideoProps> = ({
                 fontWeight: userFontWeight,
                 textAlign: 'center',
                 textShadow: hasStyleEffect ? 'none' : textShadow,
-                WebkitTextStroke: hasStyleEffect ? 'none' : `${outlineWidth}px ${outlineColor}`,
+                WebkitTextStroke: hasStyleEffect ? `${Math.max(2, outlineWidth * 0.5)}px ${outlineColor}` : `${outlineWidth}px ${outlineColor}`,
                 paintOrder: 'stroke fill',
                 maxWidth: '90%',
                 lineHeight: 1.4,
                 letterSpacing: '-0.02em',
                 transform: entranceTransform,
                 opacity: finalOpacity,
+                filter: sparkleFilter || undefined,
+                wordWrap: 'break-word',
+                overflowWrap: 'break-word',
+                wordBreak: 'break-word',
                 ...effectStyles,
               }}
             >
@@ -932,9 +1016,10 @@ export const LyricVideo: React.FC<LyricVideoProps> = ({
                 fontWeight: userFontWeight,
                 color: textStyleEffect === 'holographic' ? 'transparent' : textColor,
                 textShadow: hasStyleEffect ? 'none' : textShadow,
-                WebkitTextStroke: hasStyleEffect ? 'none' : `${outlineWidth}px ${outlineColor}`,
+                WebkitTextStroke: hasStyleEffect ? `${Math.max(2, outlineWidth * 0.5)}px ${outlineColor}` : `${outlineWidth}px ${outlineColor}`,
                 paintOrder: 'stroke fill',
                 letterSpacing: '0.3em',
+                filter: hasSparkle ? `brightness(${sparkleBrightness}) drop-shadow(0 0 ${sparkleGlow}px ${textColor})` : undefined,
                 ...effectStyles,
               }}
             >
@@ -1035,28 +1120,30 @@ export const LyricVideo: React.FC<LyricVideoProps> = ({
 
         const fontFamily = userFontFamily;
 
+        const iconSize = Math.round(90 * scale);
+
         const actionBtnStyle: React.CSSProperties = {
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          gap: '12px',
+          gap: `${Math.round(12 * scale)}px`,
         };
 
         const iconCircleStyle: React.CSSProperties = {
-          width: '90px',
-          height: '90px',
+          width: `${iconSize}px`,
+          height: `${iconSize}px`,
           borderRadius: '50%',
           backgroundColor: 'rgba(255,255,255,0.15)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           backdropFilter: 'blur(8px)',
-          border: '2px solid rgba(255,255,255,0.2)',
+          border: `${Math.round(2 * scale)}px solid rgba(255,255,255,0.2)`,
         };
 
         const iconLabelStyle: React.CSSProperties = {
           fontFamily,
-          fontSize: '20px',
+          fontSize: `${Math.round(20 * scale)}px`,
           color: textColor,
           fontWeight: '600',
           textShadow,
@@ -1070,16 +1157,16 @@ export const LyricVideo: React.FC<LyricVideoProps> = ({
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '50px',
+              gap: `${Math.round(40 * scale)}px`,
               opacity: finalCardOpacity,
-              padding: '64px',
+              padding: `${Math.round(40 * scale)}px`,
             }}
           >
             {/* Artist Name */}
             <div
               style={{
                 fontFamily,
-                fontSize: '90px',
+                fontSize: `${Math.round(90 * scale)}px`,
                 color: textColor,
                 fontWeight: '900',
                 textAlign: 'center',
@@ -1090,6 +1177,8 @@ export const LyricVideo: React.FC<LyricVideoProps> = ({
                 transform: `translateY(${artistY}px) scale(${artistScale})`,
                 maxWidth: '90%',
                 lineHeight: 1.2,
+                wordWrap: 'break-word',
+                overflowWrap: 'break-word',
               }}
             >
               {artist || title || ''}
@@ -1108,23 +1197,23 @@ export const LyricVideo: React.FC<LyricVideoProps> = ({
               <div
                 style={{
                   background: 'linear-gradient(135deg, #FF0000 0%, #CC0000 100%)',
-                  borderRadius: '16px',
-                  padding: '24px 72px',
+                  borderRadius: `${Math.round(16 * scale)}px`,
+                  padding: `${Math.round(24 * scale)}px ${Math.round(72 * scale)}px`,
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '18px',
+                  gap: `${Math.round(18 * scale)}px`,
                   boxShadow: '0 8px 32px rgba(255,0,0,0.4), 0 4px 16px rgba(0,0,0,0.3)',
-                  border: '3px solid rgba(255,255,255,0.2)',
+                  border: `${Math.round(3 * scale)}px solid rgba(255,255,255,0.2)`,
                 }}
               >
                 {/* Play button icon */}
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="white">
+                <svg width={Math.round(40 * scale)} height={Math.round(40 * scale)} viewBox="0 0 24 24" fill="white">
                   <path d="M10 8.64L15.27 12 10 15.36V8.64M8 5v14l11-7L8 5z" />
                 </svg>
                 <span
                   style={{
                     fontFamily,
-                    fontSize: '42px',
+                    fontSize: `${Math.round(42 * scale)}px`,
                     color: '#FFFFFF',
                     fontWeight: '900',
                     letterSpacing: '0.08em',
@@ -1141,13 +1230,13 @@ export const LyricVideo: React.FC<LyricVideoProps> = ({
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '64px',
+                gap: `${Math.round(64 * scale)}px`,
               }}
             >
               {/* Like */}
               <div style={{ ...actionBtnStyle, transform: `scale(${likeScale})` }}>
                 <div style={iconCircleStyle}>
-                  <svg width="44" height="44" viewBox="0 0 24 24" fill={textColor}>
+                  <svg width={Math.round(44 * scale)} height={Math.round(44 * scale)} viewBox="0 0 24 24" fill={textColor}>
                     <path d="M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z" />
                   </svg>
                 </div>
@@ -1157,7 +1246,7 @@ export const LyricVideo: React.FC<LyricVideoProps> = ({
               {/* Comment */}
               <div style={{ ...actionBtnStyle, transform: `scale(${commentScale})` }}>
                 <div style={iconCircleStyle}>
-                  <svg width="44" height="44" viewBox="0 0 24 24" fill={textColor}>
+                  <svg width={Math.round(44 * scale)} height={Math.round(44 * scale)} viewBox="0 0 24 24" fill={textColor}>
                     <path d="M21.99 4c0-1.1-.89-2-1.99-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14l4 4-.01-18z" />
                   </svg>
                 </div>
@@ -1167,7 +1256,7 @@ export const LyricVideo: React.FC<LyricVideoProps> = ({
               {/* Notification Bell */}
               <div style={{ ...actionBtnStyle, transform: `scale(${bellScale}) rotate(${bellRing}deg)` }}>
                 <div style={iconCircleStyle}>
-                  <svg width="44" height="44" viewBox="0 0 24 24" fill={textColor}>
+                  <svg width={Math.round(44 * scale)} height={Math.round(44 * scale)} viewBox="0 0 24 24" fill={textColor}>
                     <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z" />
                   </svg>
                 </div>
@@ -1179,7 +1268,7 @@ export const LyricVideo: React.FC<LyricVideoProps> = ({
             <div
               style={{
                 fontFamily,
-                fontSize: '32px',
+                fontSize: `${Math.round(32 * scale)}px`,
                 color: textColor,
                 fontWeight: '500',
                 textAlign: 'center',
@@ -1228,7 +1317,7 @@ export const LyricVideo: React.FC<LyricVideoProps> = ({
               display: 'flex',
               alignItems: 'flex-end',
               justifyContent: 'flex-end',
-              padding: '40px',
+              padding: `${Math.round(40 * scale)}px`,
               pointerEvents: 'none',
             }}
           >
@@ -1237,12 +1326,12 @@ export const LyricVideo: React.FC<LyricVideoProps> = ({
               crossOrigin="anonymous"
               alt="Album Art"
               style={{
-                width: '200px',
-                height: '200px',
-                borderRadius: '12px',
+                width: `${Math.round(120 * scale)}px`,
+                height: `${Math.round(120 * scale)}px`,
+                borderRadius: `${Math.round(12 * scale)}px`,
                 objectFit: 'cover',
                 boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4), 0 4px 16px rgba(0, 0, 0, 0.3)',
-                border: '3px solid rgba(255, 255, 255, 0.2)',
+                border: `${Math.round(3 * scale)}px solid rgba(255, 255, 255, 0.2)`,
                 transform: `scale(${totalScale})`,
                 opacity,
               }}

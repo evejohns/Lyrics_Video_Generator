@@ -8,6 +8,7 @@ interface ExportModalProps {
   onClose: () => void;
   projectId: string;
   projectTitle: string;
+  aspectRatio?: '16:9' | '9:16' | '1:1';
 }
 
 interface ExportJob {
@@ -104,15 +105,23 @@ const PRESET_SIZES: PresetSize[] = [
   },
 ];
 
-export default function ExportModal({ isOpen, onClose, projectId, projectTitle }: ExportModalProps) {
+export default function ExportModal({ isOpen, onClose, projectId, projectTitle, aspectRatio = '16:9' }: ExportModalProps) {
   const token = useAuthStore((state) => state.token);
-  const [selectedSize, setSelectedSize] = useState<PresetSize>(PRESET_SIZES[0]);
+  // Auto-select the first preset that matches the project's aspect ratio
+  const defaultPreset = PRESET_SIZES.find((p) => p.aspectRatio === aspectRatio) || PRESET_SIZES[0];
+  const [selectedSize, setSelectedSize] = useState<PresetSize>(defaultPreset);
   const [format, setFormat] = useState<'mp4' | 'mov'>('mp4');
   const [generateThumbnail, setGenerateThumbnail] = useState(true);
   const [exporting, setExporting] = useState(false);
   const [generatingThumbnail, setGeneratingThumbnail] = useState(false);
   const [thumbnailOnly, setThumbnailOnly] = useState(false);
   const [exportJob, setExportJob] = useState<ExportJob | null>(null);
+
+  // Update selected size when aspect ratio changes
+  useEffect(() => {
+    const match = PRESET_SIZES.find((p) => p.aspectRatio === aspectRatio);
+    if (match) setSelectedSize(match);
+  }, [aspectRatio]);
 
   // Poll for export status
   useEffect(() => {
@@ -174,6 +183,8 @@ export default function ExportModal({ isOpen, onClose, projectId, projectTitle }
           resolution: selectedSize.resolution,
           format,
           generateThumbnail,
+          width: selectedSize.width,
+          height: selectedSize.height,
         }),
       });
 

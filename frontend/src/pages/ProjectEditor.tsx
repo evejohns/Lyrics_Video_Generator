@@ -21,6 +21,11 @@ interface Project {
     fontSize: number;
     fontFamily: string;
     animation: string;
+    animations?: string[];
+    backgroundEffects?: string[];
+    visualEffects?: string[];
+    aspectRatio?: '16:9' | '9:16' | '1:1';
+    [key: string]: any;
   };
   status: string;
   created_at: string;
@@ -1138,7 +1143,7 @@ export default function ProjectEditor() {
         <div className="w-96 border-l border-dark-700 bg-dark-800 flex flex-col">
           {/* Preview */}
           <div className="p-6 border-b border-dark-700">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-3">
               <h3 className="font-semibold">Preview</h3>
               <div className="flex gap-1 bg-dark-700 rounded-lg p-1">
                 <button
@@ -1163,12 +1168,32 @@ export default function ProjectEditor() {
                 </button>
               </div>
             </div>
+            {/* Aspect Ratio Selector */}
+            <div className="flex gap-1 bg-dark-700 rounded-lg p-1 mb-4">
+              {([
+                { value: '16:9', label: '16:9' },
+                { value: '9:16', label: '9:16' },
+                { value: '1:1', label: '1:1' },
+              ] as const).map((ratio) => (
+                <button
+                  key={ratio.value}
+                  onClick={() => updateConfig({ aspectRatio: ratio.value })}
+                  className={`flex-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
+                    (project.config.aspectRatio || '16:9') === ratio.value
+                      ? 'bg-primary-500 text-white'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  {ratio.label}
+                </button>
+              ))}
+            </div>
             <VideoPreview
-              key={`preview-${project.config.template}-${previewMode}`}
+              key={`preview-${project.config.template}-${previewMode}-${project.config.aspectRatio || '16:9'}`}
               currentTime={currentTime}
               lyrics={lyricLines}
               config={project.config}
-              aspectRatio="16:9"
+              aspectRatio={(project.config.aspectRatio as '16:9' | '9:16' | '1:1') || '16:9'}
               mode={previewMode}
               staticText="The lights are changing colors"
               albumArtUrl={albumArtUrl}
@@ -1196,6 +1221,7 @@ export default function ProjectEditor() {
           onClose={() => setShowExportModal(false)}
           projectId={project.id}
           projectTitle={project.title}
+          aspectRatio={(project.config.aspectRatio as '16:9' | '9:16' | '1:1') || '16:9'}
         />
       )}
 
@@ -1209,7 +1235,7 @@ export default function ProjectEditor() {
             fontSize: project.config.fontSize,
             animation: project.config.animation,
           }}
-          aspectRatio="16:9"
+          aspectRatio={(project.config.aspectRatio as '16:9' | '9:16' | '1:1') || '16:9'}
           onClose={() => setShowStoryboard(false)}
           onExport={handleExport}
           artist={project.artist}

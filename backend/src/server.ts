@@ -60,11 +60,12 @@ app.use(
   })
 );
 
-// Rate limiting
+// Rate limiting (skip media routes used by Remotion renderer)
 const limiter = rateLimit({
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000'), // 15 minutes
   max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100'),
   message: 'Too many requests from this IP, please try again later.',
+  skip: (req) => req.path.startsWith('/api/media/'),
 });
 
 app.use('/api/', limiter);

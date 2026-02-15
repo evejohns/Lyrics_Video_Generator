@@ -35,6 +35,8 @@ interface RenderJobData {
   format: string;
   generateThumbnail: boolean;
   thumbnailOnly?: boolean;
+  width?: number;
+  height?: number;
   userId: string;
 }
 
@@ -104,13 +106,17 @@ async function updateExportStatus(
 }
 
 async function renderVideo(job: Job<RenderJobData>): Promise<void> {
-  const { exportId, project, lyrics, resolution, format, generateThumbnail, thumbnailOnly } = job.data;
+  const { exportId, project, lyrics, resolution, format, generateThumbnail, thumbnailOnly, width, height } = job.data;
 
   console.log(`[Worker] Starting Remotion render for export ${exportId}${thumbnailOnly ? ' (thumbnail only)' : ''}`);
 
   await updateExportStatus(exportId, 'processing', 0);
 
-  const dimensions = RESOLUTION_MAP[resolution] || RESOLUTION_MAP['1080p'];
+  // Use explicit width/height from frontend if provided (supports vertical/square formats),
+  // otherwise fall back to resolution map (always landscape)
+  const fallback = RESOLUTION_MAP[resolution] || RESOLUTION_MAP['1080p'];
+  const dimensions = (width && height) ? { width, height } : fallback;
+  console.log(`[Worker] Render dimensions: ${dimensions.width}x${dimensions.height}`);
   const outputFilename = `${exportId}.${format}`;
   const outputPath = path.join(TEMP_DIR, outputFilename);
 

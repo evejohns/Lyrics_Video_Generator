@@ -115,6 +115,8 @@ router.post(
         resolution: data.resolution,
         format: data.format,
         generateThumbnail: req.body.generateThumbnail !== false,
+        width: req.body.width,
+        height: req.body.height,
         userId,
       },
       {

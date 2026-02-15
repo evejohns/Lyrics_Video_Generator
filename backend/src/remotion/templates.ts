@@ -1226,11 +1226,11 @@ export const templates: TemplatePreset[] = [
     name: 'Electric Explosion',
     category: 'vibrant',
     description: 'High-voltage rock energy with electric sparks',
-    gradient: ['#0A0A0A', '#1A0A2E', '#FF4500'],
+    gradient: ['#1A0A0A', '#2E1000', '#B33000', '#FF4500'],
     config: {
       background: {
         type: 'gradient',
-        colors: ['#0A0A0A', '#1A0A2E', '#FF4500'],
+        colors: ['#1A0A0A', '#2E1000', '#B33000', '#FF4500'],
         gradientType: 'radial',
         pattern: 'pattern-diagonal pattern-dots',
       },
@@ -1261,7 +1261,6 @@ export const templates: TemplatePreset[] = [
       },
       effects: {
         emojis: false,
-        filmGrain: true,
         vhsEffect: true,
         glitchEffect: true,
         decorativeShapes: [
@@ -1269,8 +1268,6 @@ export const templates: TemplatePreset[] = [
           { type: 'emoji', emoji: '🔥', size: '110px', top: '65%', left: '80%', color: 'rgba(255, 255, 255, 0.35)', animation: 'animate-float-medium' },
           { type: 'emoji', emoji: '💥', size: '100px', top: '10%', left: '75%', color: 'rgba(255, 255, 255, 0.3)', animation: 'animate-float-fast' },
           { type: 'emoji', emoji: '⚡', size: '90px', top: '70%', left: '10%', color: 'rgba(255, 255, 255, 0.35)', animation: 'animate-float-medium' },
-          { type: 'triangle', size: '200px', top: '20%', left: '65%', color: 'rgba(255, 69, 0, 0.08)', animation: 'animate-spin-slow', rotate: 30 },
-          { type: 'triangle', size: '160px', top: '55%', left: '25%', color: 'rgba(255, 215, 0, 0.06)', animation: 'animate-spin-slow', rotate: -15 },
         ],
       },
     },

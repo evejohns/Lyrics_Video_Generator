@@ -75,6 +75,10 @@ export default function VideoPreview({
     '1:1': { width: '100%', paddingBottom: '100%' },
   };
   const dimensions = aspectRatioMap[aspectRatio];
+  const isVertical = aspectRatio === '9:16';
+  const isSquare = aspectRatio === '1:1';
+  // Scale factor for font sizes in preview: narrower formats need smaller text
+  const previewFontScale = isVertical ? 0.35 : 0.5;
 
   // Build animation classes (support multiple simultaneous effects)
   const getAnimationClasses = () => {
@@ -221,12 +225,12 @@ export default function VideoPreview({
   const optimalColors = getOptimalColors();
 
   return (
-    <div className="relative w-full" style={{ maxWidth: dimensions.width }}>
+    <div className="relative w-full flex justify-center" style={{ maxWidth: dimensions.width }}>
       <div
         className={`relative rounded-lg shadow-xl ${overlayEffects} ${
           (config.visualEffects || []).includes('light-rays') ? '' : 'overflow-hidden'
         }`}
-        style={{ paddingBottom: dimensions.paddingBottom }}
+        style={{ paddingBottom: dimensions.paddingBottom, width: isVertical ? '56.25%' : '100%' }}
       >
         {/* Base Gradient Background */}
         <div
@@ -329,18 +333,18 @@ export default function VideoPreview({
 
         {/* Title Card Overlay */}
         {showTitleCard && (
-          <div className="absolute inset-0 flex flex-row items-center justify-center p-4 z-20" style={{ gap: '16px' }}>
-            {/* Text Info - Right Side */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '0px', maxWidth: '80%' }}>
+          <div className="absolute inset-0 flex items-center justify-center p-4 z-20" style={{ gap: '16px', flexDirection: isVertical ? 'column' : 'row' }}>
+            {/* Text Info */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: isVertical ? 'center' : 'flex-start', gap: '0px', maxWidth: '80%', wordWrap: 'break-word', overflowWrap: 'break-word' }}>
               {/* Artist Name */}
               {artist && (
                 <div
                   style={{
                     fontFamily: config.fontFamily || 'Inter',
-                    fontSize: `${(config.fontSize || 48) * 0.25}px`,
+                    fontSize: `${(config.fontSize || 48) * previewFontScale * 0.5}px`,
                     color: '#FFFFFF',
                     fontWeight: '600',
-                    textAlign: 'left',
+                    textAlign: isVertical ? 'center' : 'left',
                     textShadow: '0 0 30px rgba(0,0,0,1), 0 0 20px rgba(0,0,0,0.95), 0 6px 12px rgba(0,0,0,0.9), 0 3px 6px rgba(0,0,0,0.85)',
                     WebkitTextStroke: `${Math.max(1, optimalColors.outlineWidth * 0.4)}px ${optimalColors.outline}`,
                     paintOrder: 'stroke fill',
@@ -357,10 +361,10 @@ export default function VideoPreview({
               <div
                 style={{
                   fontFamily: config.fontFamily || 'Inter',
-                  fontSize: `${(config.fontSize || 48) * 0.5}px`,
+                  fontSize: `${(config.fontSize || 48) * previewFontScale}px`,
                   color: '#FFFFFF',
                   fontWeight: '900',
-                  textAlign: 'left',
+                  textAlign: isVertical ? 'center' : 'left',
                   textShadow: '0 0 30px rgba(0,0,0,1), 0 0 20px rgba(0,0,0,0.95), 0 6px 12px rgba(0,0,0,0.9), 0 3px 6px rgba(0,0,0,0.85)',
                   WebkitTextStroke: `${optimalColors.outlineWidth}px ${optimalColors.outline}`,
                   paintOrder: 'stroke fill',
@@ -400,7 +404,7 @@ export default function VideoPreview({
             <div
               style={{
                 fontFamily: config.fontFamily || 'Inter',
-                fontSize: `${(config.fontSize || 48) * 0.55}px`,
+                fontSize: `${(config.fontSize || 48) * previewFontScale * 1.1}px`,
                 color: optimalColors.text,
                 fontWeight: '900',
                 textAlign: 'center',
@@ -410,6 +414,8 @@ export default function VideoPreview({
                 letterSpacing: '-0.02em',
                 maxWidth: '90%',
                 lineHeight: 1.2,
+                wordWrap: 'break-word',
+                overflowWrap: 'break-word',
               }}
             >
               {artist || title || ''}
@@ -543,7 +549,7 @@ export default function VideoPreview({
             }`}
             style={{
               fontFamily: config.fontFamily || 'Inter',
-              fontSize: `${(config.fontSize || 48) * 0.5}px`,
+              fontSize: `${(config.fontSize || 48) * previewFontScale}px`,
               color: textStyleEffect === 'holographic' ? 'transparent' : optimalColors.text,
               fontWeight: template.config.text.weight,
               textShadow: ['glitch', 'neon', '3d', 'rgb-split', 'chromatic', 'holographic'].includes(textStyleEffect)
@@ -555,6 +561,9 @@ export default function VideoPreview({
                 : `${optimalColors.outlineWidth}px ${optimalColors.outline}`,
               maxWidth: '90%',
               lineHeight: 1.4,
+              wordWrap: 'break-word',
+              overflowWrap: 'break-word',
+              wordBreak: 'break-word',
             }}
           >
             {displayText}
@@ -581,7 +590,7 @@ export default function VideoPreview({
             <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
               <div
                 style={{
-                  fontSize: `${(config.fontSize || 48) * 0.75}px`,
+                  fontSize: `${(config.fontSize || 48) * previewFontScale * 1.5}px`,
                   color: optimalColors.text,
                   textShadow: optimalColors.shadow,
                   WebkitTextStroke: `${optimalColors.outlineWidth}px ${optimalColors.outline}`,
